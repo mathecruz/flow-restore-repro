@@ -1,18 +1,6 @@
 # flow-restore-repro
 
-Reproduces an issue with Quarkus Flow instance restore: an instance waiting on a `listen` task is restored from the database after a crash, but does not resume when the expected event arrives.
-
-The `wait` workflow (`WaitFlow.java`) has three tasks:
-
-1. `prepare`: copies `key` from the input;
-2. `wait`: waits for a `demo.go.v1` event with the same `key` (correlated via `dataFields("key")`);
-3. `done`: logs `done {...}`.
-
-## Requirements
-
-- Java 25
-- Docker (Postgres on port `5433`)
-- `quarkus-flow` `2.0.0-SNAPSHOT` installed in the local Maven repository (`./mvnw install` in the quarkus-flow repository)
+Reproduces the https://github.com/quarkiverse/quarkus-flow/issues/1185 issue.
 
 ## Build
 
