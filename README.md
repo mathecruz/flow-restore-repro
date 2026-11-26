@@ -1,18 +1,18 @@
 # flow-restore-repro
 
-Reproduz um problema no restore de instâncias do Quarkus Flow: uma instância parada em um `listen` é restaurada do banco após um crash, mas não continua quando o evento esperado chega.
+Reproduces an issue with Quarkus Flow instance restore: an instance waiting on a `listen` task is restored from the database after a crash, but does not resume when the expected event arrives.
 
-O workflow `wait` (`WaitFlow.java`) tem três tasks:
+The `wait` workflow (`WaitFlow.java`) has three tasks:
 
-1. `prepare`: copia o `key` do input;
-2. `wait`: espera um evento `demo.go.v1` com o mesmo `key` (correlação por `dataFields("key")`);
-3. `done`: loga `done {...}`.
+1. `prepare`: copies `key` from the input;
+2. `wait`: waits for a `demo.go.v1` event with the same `key` (correlated via `dataFields("key")`);
+3. `done`: logs `done {...}`.
 
 ## Requirements
 
 - Java 25
-- Docker (Postgres na porta `5433`)
-- `quarkus-flow` `2.0.0-SNAPSHOT` instalado no repositório Maven local (`./mvnw install` no repositório do quarkus-flow)
+- Docker (Postgres on port `5433`)
+- `quarkus-flow` `2.0.0-SNAPSHOT` installed in the local Maven repository (`./mvnw install` in the quarkus-flow repository)
 
 ## Build
 
@@ -23,19 +23,19 @@ docker-compose up -d
 
 ## Test
 
-1. Inicie uma instância do workflow `wait` com `key=k1`:
+1. Start an instance of the `wait` workflow with `key=k1`:
 
 ```shell
-java -Ddemo.start=true -jar target/quarkus-app/quarkus-run.jar   # espere o "Task 'wait' started"
+java -Ddemo.start=true -jar target/quarkus-app/quarkus-run.jar   # wait for "Task 'wait' started"
 ```
 
-2. Mate o processo sem shutdown gracioso, para que a instância fique persistida no Postgres esperando o evento:
+2. Kill the process without a graceful shutdown, so the instance stays persisted in Postgres waiting for the event:
 
 ```shell
 kill -9 <pid>
 ```
 
-3. Suba a aplicação de novo. Ela restaura a instância do banco e, após 3 segundos (`-Ddemo.send-delay-ms`), envia um evento `demo.go.v1` com `{"key":"k1"}` para o canal `flow-in`:
+3. Start the application again. It restores the instance from the database and, after 3 seconds (`-Ddemo.send-delay-ms`), sends a `demo.go.v1` event with `{"key":"k1"}` to the `flow-in` channel:
 
 ```shell
 java -Ddemo.send=true -jar target/quarkus-app/quarkus-run.jar
@@ -43,7 +43,7 @@ java -Ddemo.send=true -jar target/quarkus-app/quarkus-run.jar
 
 ## Expected
 
-A instância restaurada recebe o evento, executa a task `done` e loga:
+The restored instance receives the event, runs the `done` task and logs:
 
 ```
 done {key=k1}
@@ -51,7 +51,7 @@ done {key=k1}
 
 ## Actual
 
-A instância é restaurada (veja os logs `DEBUG` de `io.quarkiverse.flow.persistence`) e o `Sending demo.go.v1 with key=k1 to flow-in` aparece, mas o `done` nunca é logado: a instância continua parada na task `wait`.
+The instance is restored (see the `DEBUG` logs from `io.quarkiverse.flow.persistence`) and `Sending demo.go.v1 with key=k1 to flow-in` is logged, but `done` is never logged: the instance stays stuck on the `wait` task.
 
 ## Executing in another port
 
@@ -61,7 +61,7 @@ java -Ddemo.start=true -Dquarkus.http.port=5555 -jar target/quarkus-app/quarkus-
 
 ## Reset
 
-Para começar do zero, apague o banco:
+To start from scratch, drop the database:
 
 ```shell
 docker-compose down -v
